@@ -212,6 +212,12 @@ function applyTextTransform(text: string, transform: string): string {
   }
 }
 
+function extractTextLinearGradient(style: CSSStyleDeclaration): ExtendedGradient | undefined {
+  if (!isBackgroundClipText(style)) return undefined;
+  const bgImg = style.backgroundImage !== 'none' ? style.backgroundImage : style.background;
+  return parseLinearGradient(bgImg);
+}
+
 function resolveTextColor(style: CSSStyleDeclaration): ParsedColor | undefined {
   if (isBackgroundClipText(style)) {
     const bgImg = style.backgroundImage !== 'none' ? style.backgroundImage : style.background;
@@ -689,10 +695,39 @@ export class HtmlSlideConverter {
       }
     }
 
-    // Only keep a 4-sided shape border when ALL 4 sides have width > 0
-    const usePartialLines = activeSides.length > 0 && activeSides.length < 4;
-    if (usePartialLines) {
+    // Only keep a uniform 4-sided shape border when ALL 4 sides match;
+    // for 1-3 sides emit lines only, and for asymmetric 4-sided HUD/TOC borders
+    // keep the thinnest base border on the shape and emit accent edges as native lines.
+    let accentLineSides: ActiveBorderSide[] = [];
+    if (activeSides.length > 0 && activeSides.length < 4) {
       delete rawShapeOpts.border;
+      accentLineSides = activeSides;
+    } else if (activeSides.length === 4) {
+      const ref = activeSides[0];
+      const isUniform4 = activeSides.every(
+        (s) =>
+          Math.abs(s.widthPx - ref.widthPx) <= 0.25 &&
+          s.color.hex === ref.color.hex &&
+          Math.abs(s.color.opacity - ref.color.opacity) <= 0.02 &&
+          s.style === ref.style
+      );
+      if (!isUniform4) {
+        const minSide = activeSides.reduce((min, s) =>
+          s.widthPx < min.widthPx ? s : min
+        );
+        rawShapeOpts.border = {
+          color: minSide.color.hex,
+          widthPt: Number((minSide.widthPx * 0.5).toFixed(2)),
+          opacity: minSide.color.opacity * elementOpacity < 1
+            ? Number((minSide.color.opacity * elementOpacity).toFixed(4))
+            : undefined,
+        };
+        accentLineSides = activeSides.filter(
+          (s) =>
+            Math.abs(s.widthPx - minSide.widthPx) > 0.25 ||
+            s.color.hex !== minSide.color.hex
+        );
+      }
     } else if (activeSides.length === 0 && forceTranslucentGlass) {
       rawShapeOpts.border = {
         color: 'FFFFFF',
@@ -713,11 +748,11 @@ export class HtmlSlideConverter {
       this.ext.addExtendedShape(slide, shapeOpts);
     }
 
-    if (usePartialLines) {
+    if (accentLineSides.length > 0) {
       this.emitSingleSidedBorderLines(
         slide,
         rect,
-        activeSides,
+        accentLineSides,
         elementOpacity,
         metrics.designScale
       );
@@ -813,7 +848,7 @@ export class HtmlSlideConverter {
     }
 
     const strippedText = content.replace(/^["']|["']$/g, '').trim();
-    if (strippedText) {
+    if (strippedText && !/^[\uE000-\uF8FF\s]+$/.test(strippedText)) {
       const fontColor = resolveTextColor(pseudo);
       const fontSizePx = (parseFloat(pseudo.fontSize) || 16) * metrics.designScale;
       slide.addText(applyTextTransform(strippedText, pseudo.textTransform), {
@@ -1016,6 +1051,16 @@ export class HtmlSlideConverter {
   private isRichTextContainer(el: HTMLElement): boolean {
     if (el.children.length === 0) return false;
 
+    const containerStyle = window.getComputedStyle(el);
+    if (
+      containerStyle.display === 'flex' ||
+      containerStyle.display === 'inline-flex' ||
+      containerStyle.display === 'grid' ||
+      containerStyle.display === 'inline-grid'
+    ) {
+      return false;
+    }
+
     const checkNode = (parent: HTMLElement): boolean => {
       for (const child of Array.from(parent.children)) {
         if (!(child instanceof HTMLElement)) return false;
@@ -1033,9 +1078,20 @@ export class HtmlSlideConverter {
           child.tagName !== 'BR' &&
           (cs.display === 'block' ||
             cs.display === 'flex' ||
+            cs.display === 'inline-flex' ||
             cs.display === 'grid' ||
-            cs.display === 'inline-block' ||
-            cs.display === 'inline-flex') &&
+            cs.display === 'inline-grid' ||
+            cs.display === 'list-item' ||
+            cs.display === 'table' ||
+            cs.display === 'table-cell' ||
+            cs.position === 'absolute' ||
+            cs.position === 'fixed')
+        ) {
+          return false;
+        }
+        if (
+          child.tagName !== 'BR' &&
+          (cs.display === 'inline-block') &&
           (parseFloat(cs.paddingLeft) > 0 || parseFloat(cs.paddingRight) > 0)
         ) {
           return false;
@@ -1051,6 +1107,7 @@ export class HtmlSlideConverter {
   private collectInlineRuns(
     node: Node,
     parentEl: HTMLElement,
+    slide: PptxGenJS.Slide,
     metrics: SlideTransformMetrics,
     runs: PptxGenJS.TextProps[],
     state: { hasLineBreak: boolean }
@@ -1076,7 +1133,12 @@ export class HtmlSlideConverter {
       if (!Number.isNaN(elOpacity) && elOpacity <= 0) return;
 
       const text = applyTextTransform(collapsed, style.textTransform);
-      const fontColor = resolveTextColor(style);
+      const textGrad = extractTextLinearGradient(style);
+      const fontColor = textGrad ? undefined : resolveTextColor(style);
+      const runColor = textGrad
+        ? this.ext.registerTextGradient(slide, textGrad)
+        : (fontColor?.hex ?? '000000');
+
       const fontSizePx = (parseFloat(style.fontSize) || 16) * metrics.designScale;
       const fontSizePt = Number((fontSizePx * 0.5).toFixed(2));
       const fontFace = resolveFontFamily(style.fontFamily, this.fontMap);
@@ -1091,7 +1153,9 @@ export class HtmlSlideConverter {
           ? Number((letterSpacingPx * metrics.designScale * 0.5).toFixed(2))
           : undefined;
       const combinedOpacity =
-        (fontColor?.opacity ?? 1) * (Number.isNaN(elOpacity) ? 1 : elOpacity);
+        textGrad
+          ? 1
+          : (fontColor?.opacity ?? 1) * (Number.isNaN(elOpacity) ? 1 : elOpacity);
       const transparency =
         combinedOpacity < 1 ? Math.round((1 - combinedOpacity) * 100) : 0;
 
@@ -1109,7 +1173,7 @@ export class HtmlSlideConverter {
           bold,
           italic,
           underline,
-          color: fontColor?.hex ?? '000000',
+          color: runColor,
           transparency,
           charSpacing,
         },
@@ -1135,7 +1199,7 @@ export class HtmlSlideConverter {
       if (cs.display === 'none' || cs.visibility === 'hidden') return;
 
       for (const child of Array.from(node.childNodes)) {
-        this.collectInlineRuns(child, node, metrics, runs, state);
+        this.collectInlineRuns(child, node, slide, metrics, runs, state);
       }
     }
   }
@@ -1156,11 +1220,10 @@ export class HtmlSlideConverter {
     const runs: PptxGenJS.TextProps[] = [];
     const state = { hasLineBreak: false };
     for (const child of Array.from(el.childNodes)) {
-      this.collectInlineRuns(child, el, metrics, runs, state);
+      this.collectInlineRuns(child, el, slide, metrics, runs, state);
     }
 
     if (runs.length === 0) return true;
-    // Trim trailing whitespace on last run
     const lastRun = runs[runs.length - 1];
     if (lastRun.text) {
       lastRun.text = lastRun.text.replace(/\s+$/, '');
@@ -1206,7 +1269,8 @@ export class HtmlSlideConverter {
     const elOpacity = parseFloat(style.opacity);
     if (!Number.isNaN(elOpacity) && elOpacity <= 0) return;
 
-    const fontColor = resolveTextColor(style);
+    const textGrad = extractTextLinearGradient(style);
+    const fontColor = textGrad ? undefined : resolveTextColor(style);
     const fontSizePx = (parseFloat(style.fontSize) || 16) * metrics.designScale;
     const fontSizePt = Number((fontSizePx * 0.5).toFixed(2));
     const fontFace = resolveFontFamily(style.fontFamily, this.fontMap);
@@ -1220,7 +1284,9 @@ export class HtmlSlideConverter {
         : undefined;
 
     const combinedOpacity =
-      (fontColor?.opacity ?? 1) * (Number.isNaN(elOpacity) ? 1 : elOpacity);
+      textGrad
+        ? 1
+        : (fontColor?.opacity ?? 1) * (Number.isNaN(elOpacity) ? 1 : elOpacity);
     const transparency =
       combinedOpacity < 1 ? Math.round((1 - combinedOpacity) * 100) : 0;
 
@@ -1240,6 +1306,9 @@ export class HtmlSlideConverter {
 
       const isSingleLine = this.isSingleLineRange(range, style, metrics, false);
       const box = this.computeTextBoxRect(rawRect, align, isSingleLine, fontSizePx);
+      const runColor = textGrad
+        ? this.ext.registerTextGradient(slide, textGrad)
+        : (fontColor?.hex ?? '000000');
 
       slide.addText(text, {
         x: this.ext.pxToIn(box.xPx),
@@ -1250,7 +1319,7 @@ export class HtmlSlideConverter {
         fontSize: fontSizePt,
         bold,
         italic,
-        color: fontColor?.hex ?? '000000',
+        color: runColor,
         transparency,
         align,
         valign: isSingleLine ? 'middle' : 'top',
@@ -1342,7 +1411,7 @@ export class HtmlSlideConverter {
       return { descend: false };
     }
 
-    // 3. HTML <img> Element -> embed directly
+    // 3. HTML <img> Element -> embed safely without triggering failing network fetches offline
     if (el instanceof HTMLImageElement && el.src) {
       if (el.src.startsWith('data:')) {
         slide.addImage({
@@ -1352,14 +1421,45 @@ export class HtmlSlideConverter {
           w: this.ext.pxToIn(rect.wPx),
           h: this.ext.pxToIn(rect.hPx),
         });
-      } else {
-        slide.addImage({
-          path: el.src,
-          x: this.ext.pxToIn(rect.xPx),
-          y: this.ext.pxToIn(rect.yPx),
-          w: this.ext.pxToIn(rect.wPx),
-          h: this.ext.pxToIn(rect.hPx),
-        });
+      } else if (el.complete && el.naturalWidth > 0) {
+        let embedded = false;
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = el.naturalWidth;
+          canvas.height = el.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(el, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            slide.addImage({
+              data: dataUrl,
+              x: this.ext.pxToIn(rect.xPx),
+              y: this.ext.pxToIn(rect.yPx),
+              w: this.ext.pxToIn(rect.wPx),
+              h: this.ext.pxToIn(rect.hPx),
+            });
+            embedded = true;
+          }
+        } catch {
+          // Cross-origin tainted canvas -> allow path only for same-origin URLs
+        }
+
+        if (!embedded) {
+          try {
+            const url = new URL(el.src, window.location.href);
+            if (url.origin === window.location.origin) {
+              slide.addImage({
+                path: el.src,
+                x: this.ext.pxToIn(rect.xPx),
+                y: this.ext.pxToIn(rect.yPx),
+                w: this.ext.pxToIn(rect.wPx),
+                h: this.ext.pxToIn(rect.hPx),
+              });
+            }
+          } catch {
+            // Skip invalid/unreachable external URLs gracefully
+          }
+        }
       }
       return { descend: false };
     }

@@ -133,6 +133,12 @@ interface PendingChartPatch {
   hideAxes: boolean;
 }
 
+interface PendingTextGradientPatch {
+  slideIndex: number;
+  sentinelHex: string;
+  gradient: ExtendedGradient;
+}
+
 const A_NS = 'http://schemas.openxmlformats.org/drawingml/2006/main';
 const P_NS = 'http://schemas.openxmlformats.org/presentationml/2006/main';
 const R_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
@@ -240,11 +246,13 @@ export class ExtendedPptxJS {
   public readonly pptx: PptxGenJS;
   private patches: PendingXmlPatch[] = [];
   private chartPatches: PendingChartPatch[] = [];
+  private textGradientPatches: PendingTextGradientPatch[] = [];
   private embeddedFonts: EmbeddedFont[] = [];
   private slideIndexMap = new WeakMap<PptxGenJS.Slide, number>();
   private slideCount = 0;
   private shapeCounter = 0;
   private chartCounter = 0;
+  private textGradientCounter = 0;
 
   // Base 1920x1080 canvas mapped to standard 16:9 widescreen (13.333" x 7.5")
   public readonly baseWidthPx = 1920;
@@ -831,11 +839,84 @@ export class ExtendedPptxJS {
     zip.file(presPath, serializeXmlDocument(presDoc));
   }
 
+  /**
+   * Registers a multi-stop linear gradient for a text run and returns a unique
+   * 6-char sentinel hex color to pass to `slide.addText(..., { color })`.
+   * During `exportBuffer()`, `<a:rPr>` solid fills matching the sentinel are
+   * replaced in-place with native OOXML `<a:gradFill>` XML.
+   */
+  public registerTextGradient(
+    slide: PptxGenJS.Slide,
+    gradient: ExtendedGradient,
+    explicitSlideIndex?: number
+  ): string {
+    const slideIndex = explicitSlideIndex ?? this.slideIndexMap.get(slide);
+    if (slideIndex === undefined) {
+      throw new Error(
+        'Slide index unknown. Create slides via extendedPptx.addSlide() or pass explicitSlideIndex.'
+      );
+    }
+
+    const idx = ++this.textGradientCounter;
+    // Reserved sentinel range: FE0001..FEFFFF
+    const sentinelHex = `FE${idx.toString(16).padStart(4, '0').toUpperCase()}`;
+    this.textGradientPatches.push({
+      slideIndex,
+      sentinelHex,
+      gradient,
+    });
+    return sentinelHex;
+  }
+
+  private async applyTextGradientPatches(zip: JSZip): Promise<void> {
+    if (this.textGradientPatches.length === 0) return;
+
+    const bySlide = new Map<string, Map<string, ExtendedGradient>>();
+    for (const patch of this.textGradientPatches) {
+      const slidePath = `ppt/slides/slide${patch.slideIndex + 1}.xml`;
+      let map = bySlide.get(slidePath);
+      if (!map) {
+        map = new Map<string, ExtendedGradient>();
+        bySlide.set(slidePath, map);
+      }
+      map.set(patch.sentinelHex, patch.gradient);
+    }
+
+    for (const [slidePath, sentinelMap] of bySlide.entries()) {
+      const file = zip.file(slidePath);
+      if (!file) continue;
+
+      const doc = parseXmlDocument(await file.async('string'));
+      const rPrList = doc.getElementsByTagNameNS(A_NS, 'rPr');
+
+      for (let i = 0; i < rPrList.length; i++) {
+        const rPr = rPrList.item(i);
+        if (!rPr) continue;
+
+        const solidFill = getFirstDirectChild(rPr, 'solidFill');
+        if (!solidFill) continue;
+
+        const srgbClr = getFirstDirectChild(solidFill, 'srgbClr');
+        const val = srgbClr?.getAttribute('val')?.toUpperCase();
+        if (!val) continue;
+
+        const gradient = sentinelMap.get(val);
+        if (!gradient) continue;
+
+        const gradFill = this.buildGradFillElement(doc, gradient);
+        rPr.replaceChild(gradFill, solidFill);
+      }
+
+      zip.file(slidePath, serializeXmlDocument(doc));
+    }
+  }
+
   public async exportBuffer(): Promise<ArrayBuffer> {
     const rawBuffer = (await this.pptx.write({ outputType: 'arraybuffer' })) as ArrayBuffer;
     if (
       this.patches.length === 0 &&
       this.chartPatches.length === 0 &&
+      this.textGradientPatches.length === 0 &&
       this.embeddedFonts.length === 0
     ) {
       return rawBuffer;
@@ -927,6 +1008,7 @@ export class ExtendedPptxJS {
       zip.file(slidePath, serializeXmlDocument(doc));
     }
 
+    await this.applyTextGradientPatches(zip);
     await this.applyChartPatches(zip);
     await this.applyEmbeddedFonts(zip);
 

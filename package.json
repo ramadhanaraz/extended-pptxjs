@@ -1,6 +1,6 @@
 {
   "name": "extended-pptxjs",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "OpenXML post-processor and HTML-to-PPTX engine extending pptxgenjs",
   "license": "GPL-3.0",
   "repository": {

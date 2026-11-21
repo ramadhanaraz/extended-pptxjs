@@ -107,6 +107,25 @@ describe('PPTX OpenXML structural integrity', () => {
     );
     ext.addExtendedShape(slide1, glassOpts);
 
+    // Native gradient text run via registerTextGradient
+    const sentinelHex = ext.registerTextGradient(slide1, {
+      angleDeg: 90,
+      stops: [
+        { color: '38BDF8', position: 0 },
+        { color: 'F472B6', position: 100 },
+      ],
+    });
+    slide1.addText('Gradient Heading', {
+      x: ext.pxToIn(84),
+      y: ext.pxToIn(140),
+      w: ext.pxToIn(600),
+      h: ext.pxToIn(60),
+      fontSize: 32,
+      bold: true,
+      color: sentinelHex,
+      margin: 0,
+    });
+
     // Slide 2: Combo gradient line/area chart, gradient column chart, donut chart, and table
     const slide2 = ext.addSlide();
 
@@ -250,5 +269,10 @@ describe('PPTX OpenXML structural integrity', () => {
     const chart3Xml = await zip.file('ppt/charts/chart3.xml')!.async('string');
     expect(chart3Xml).toContain('<c:doughnutChart>');
     expect(chart3Xml).toContain('<c:holeSize val="70"/>');
+
+    // Verify native gradient text <a:gradFill> inside <a:rPr>
+    const slide1Xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+    expect(slide1Xml).toMatch(/<a:rPr[^>]*><a:gradFill rotWithShape="1">/);
+    expect(slide1Xml).not.toContain('FE0001');
   });
 });

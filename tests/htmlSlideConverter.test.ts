@@ -74,13 +74,14 @@ describe('HtmlSlideConverter multi-slide DOM integration', () => {
           <h1 id="headline" style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 48px; line-height: 56px; color: #f8fafc; text-align: left;">
             <span id="clip-span" class="grad-text">Aurora</span> Executive Deck
           </h1>
-          <div id="rich-card" class="accent-card">
+          <div id="rich-card" class="accent-card" style="border: 1.5px solid #e2e8f0; border-left: 4px solid #6366f1;">
             <p id="rich-para" style="font-size: 22px; line-height: 30px; color: #cbd5e1;">
               Built with <strong>native vectors</strong> and <span style="color: #34d399;">inline color</span>.<br/>Second line.
             </p>
           </div>
-          <footer id="footer" style="border-top: 2px solid #334155;">
-            <span id="footer-label" style="font-family: ui-monospace, monospace; font-size: 16px; color: #94a3b8;">SLIDE 01</span>
+          <footer id="footer" style="border-top: 2px solid #334155; display: flex; justify-content: space-between;">
+            <span id="footer-left" style="font-family: ui-monospace, monospace; font-size: 16px; color: #94a3b8;">SLIDE 01</span>
+            <span id="footer-right" style="font-family: ui-monospace, monospace; font-size: 16px; color: #fde047;">NOV 2026</span>
           </footer>
         </section>
 
@@ -105,7 +106,8 @@ describe('HtmlSlideConverter multi-slide DOM integration', () => {
     const richCard = doc.getElementById('rich-card')!;
     const richPara = doc.getElementById('rich-para')!;
     const footer = doc.getElementById('footer')!;
-    const footerLabel = doc.getElementById('footer-label')!;
+    const footerLeft = doc.getElementById('footer-left')!;
+    const footerRight = doc.getElementById('footer-right')!;
     const chartBox = doc.getElementById('chart-box')!;
     const dataTable = doc.getElementById('data-table') as HTMLTableElement;
 
@@ -115,7 +117,8 @@ describe('HtmlSlideConverter multi-slide DOM integration', () => {
       [richCard, [80, 180, 800, 300]],
       [richPara, [110, 220, 700, 64]],
       [footer, [80, 960, 1760, 48]],
-      [footerLabel, [80, 976, 120, 20]],
+      [footerLeft, [80, 976, 120, 20]],
+      [footerRight, [1700, 976, 140, 20]],
       [slide2, [0, 0, 1920, 1080]],
       [chartBox, [80, 120, 800, 360]],
       [dataTable, [80, 540, 800, 120]],
@@ -233,17 +236,25 @@ describe('HtmlSlideConverter multi-slide DOM integration', () => {
       const expectedExpandedCx = Math.round(ext.pxToIn(600 * 1.14) * 914400);
       expect(s1Xml).toContain(`cx="${expectedExpandedCx}"`);
 
-      // background-clip:text extracted first stop #38BDF8 for "Aurora" run
-      expect(s1Xml).toContain('val="38BDF8"');
+      // background-clip:text replaced sentinel solidFill inside <a:rPr> with native <a:gradFill>
       expect(s1Xml).toContain('<a:t>Aurora</a:t>');
+      expect(s1Xml).toMatch(/<a:rPr[^>]*><a:gradFill rotWithShape="1">[\s\S]*?<a:srgbClr val="38BDF8"[\s\S]*?<a:srgbClr val="F472B6"[\s\S]*?<\/a:gradFill>/);
+      expect(s1Xml).not.toContain('FE0001');
+
+      // justify-content: space-between footer children remain TWO separate positioned text boxes
+      expect(s1Xml).toContain('<a:t>SLIDE 01</a:t>');
+      expect(s1Xml).toContain('<a:t>NOV 2026</a:t>');
+      const rightFooterX = Math.round(ext.pxToIn(1700) * 914400);
+      expect(s1Xml).toContain(`x="${rightFooterX}"`);
 
       // Rich inline text runs preserved (bold "native vectors" and green "#34D399" "inline color")
       expect(s1Xml).toContain('<a:t>native vectors</a:t>');
       expect(s1Xml).toContain('val="34D399"');
       expect(s1Xml).toContain('<a:t>inline color</a:t>');
 
-      // Single-sided border-top footer emitted as prst="line", not a 4-sided rect border
+      // Single-sided border-top footer AND asymmetric border-left accent emitted as prst="line"
       expect(s1Xml).toContain('<a:prstGeom prst="line">');
+      expect(s1Xml).toContain('val="6366F1"');
 
       // ::before accent bar emitted with #818CF8 gradient stop
       expect(s1Xml).toContain('val="818CF8"');
