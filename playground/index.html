@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ExtendedPptxJS v0.3.0 — Visual Playground</title>
+  <title>ExtendedPptxJS v0.3.0 — 2-Slide Verification Deck</title>
   <style>
     * {
       box-sizing: border-box;
@@ -19,21 +19,24 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px 24px 40px;
-      gap: 20px;
+      padding: 20px 24px 48px;
+      gap: 24px;
     }
 
     .toolbar {
       width: 100%;
       max-width: 1280px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.22);
       border-radius: 16px;
       padding: 14px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
+      position: sticky;
+      top: 12px;
+      z-index: 100;
     }
 
     .toolbar-left {
@@ -88,12 +91,6 @@
       cursor: wait;
     }
 
-    .btn-secondary {
-      background: #1e293b;
-      color: #e2e8f0;
-      border: 1px solid #334155;
-    }
-
     .btn-primary {
       background: linear-gradient(120deg, #38bdf8 0%, #818cf8 50%, #f472b6 100%);
       color: #090d16;
@@ -116,24 +113,22 @@
       transform-origin: top left;
     }
 
-    /* 1920x1080 Slide Canvas */
-    #slide-canvas {
+    .slide-container {
       width: 1920px;
       height: 1080px;
       position: relative;
       overflow: hidden;
-      background: linear-gradient(135deg, #070b14 0%, #0d1324 55%, #111827 100%);
-      padding: 60px 84px;
+      padding: 58px 84px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
     }
 
-    #slide-canvas.light-mode {
-      background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 52%, #fdf2f8 100%);
+    /* ================= SLIDE 1: DARK AURORA & PRIMITIVES ================= */
+    #slide-1 {
+      background: linear-gradient(135deg, #070b14 0%, #0d1324 55%, #111827 100%);
     }
 
-    /* Aurora Soft-Edge Glow Blobs */
     .aurora-blob {
       position: absolute;
       border-radius: 50%;
@@ -143,8 +138,8 @@
     .blob-1 {
       width: 680px;
       height: 680px;
-      top: -160px;
-      right: -100px;
+      top: -170px;
+      right: -110px;
       background: rgba(139, 92, 246, 0.42);
       filter: blur(90px);
       z-index: 1;
@@ -190,7 +185,7 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .badge-pill {
@@ -218,45 +213,53 @@
     }
 
     .hero-title {
-      font-size: 54px;
+      font-size: 52px;
       font-weight: 800;
       line-height: 1.15;
       color: #f8fafc;
-      margin-bottom: 12px;
-    }
-
-    .light-mode .hero-title {
-      color: #0f172a;
+      margin-bottom: 10px;
     }
 
     .hero-subtitle {
-      font-size: 24px;
+      font-size: 22px;
       line-height: 1.4;
       color: #94a3b8;
-      max-width: 1120px;
+      max-width: 1180px;
     }
 
-    .light-mode .hero-subtitle {
-      color: #475569;
+    .icon-row {
+      display: flex;
+      gap: 14px;
+      flex-shrink: 0;
     }
 
-    .cards-grid {
+    .svg-tile {
+      width: 92px;
+      height: 92px;
+      background: rgba(30, 41, 59, 0.78);
+      border: 1.5px solid rgba(129, 140, 248, 0.42);
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cards-grid-s1 {
       display: flex;
       gap: 28px;
       align-items: stretch;
-      margin: 24px 0;
+      margin: 22px 0;
       flex: 1;
     }
 
-    /* Native Translucent Glass Card (default glassMode: 'native-translucent') */
     .glass-card {
       flex: 1;
-      background: rgba(15, 23, 42, 0.66);
+      background: rgba(15, 23, 42, 0.64);
       backdrop-filter: blur(28px) saturate(180%);
       -webkit-backdrop-filter: blur(28px) saturate(180%);
       border: 1.5px solid rgba(148, 163, 184, 0.28);
       border-radius: 28px;
-      padding: 32px;
+      padding: 34px;
       box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
       display: flex;
       flex-direction: column;
@@ -264,42 +267,17 @@
       gap: 18px;
     }
 
-    .light-mode .glass-card {
-      background: rgba(255, 255, 255, 0.68);
-      border: 1.5px solid rgba(99, 102, 241, 0.28);
-      box-shadow: 0 24px 48px rgba(15, 23, 42, 0.14);
-    }
-
     .gradient-card {
-      flex: 1.1;
-      background: linear-gradient(145deg, #1e1b4b 0%, #312e81 55%, #4c1d95 100%);
-      border: 1.5px solid rgba(255, 255, 255, 0.22);
+      flex: 1;
+      background: linear-gradient(145deg, #312e81 0%, #6d28d9 52%, #db2777 100%);
+      border: 1.5px solid rgba(255, 255, 255, 0.24);
       border-radius: 28px;
-      padding: 32px;
-      box-shadow: 0 24px 48px rgba(49, 46, 129, 0.38);
+      padding: 34px;
+      box-shadow: 0 24px 48px rgba(109, 40, 217, 0.35);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 16px;
-    }
-
-    .table-card {
-      flex: 1.05;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1.5px solid #1e293b;
-      border-radius: 28px;
-      padding: 32px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.42);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 16px;
-    }
-
-    .light-mode .table-card {
-      background: #ffffff;
-      border: 1.5px solid #cbd5e1;
-      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+      gap: 18px;
     }
 
     .card-kicker {
@@ -317,13 +295,8 @@
       color: #f8fafc;
     }
 
-    .light-mode .glass-card .card-title,
-    .light-mode .table-card .card-title {
-      color: #0f172a;
-    }
-
     .card-metric {
-      font-size: 58px;
+      font-size: 56px;
       font-weight: 800;
       color: #38bdf8;
       line-height: 1;
@@ -333,11 +306,6 @@
       font-size: 20px;
       line-height: 1.45;
       color: #cbd5e1;
-    }
-
-    .light-mode .glass-card .card-desc,
-    .light-mode .table-card .card-desc {
-      color: #475569;
     }
 
     .token-box {
@@ -351,57 +319,56 @@
       color: #a5b4fc;
     }
 
-    .light-mode .glass-card .token-box {
-      background: rgba(241, 245, 249, 0.9);
-      color: #4f46e5;
-      border-color: #cbd5e1;
+    /* Horizontal Stepper Row with Thin Connector Lines */
+    .stepper-panel {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1.5px solid #1e293b;
+      border-radius: 22px;
+      padding: 24px 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
     }
 
-    .chart-stage {
-      width: 100%;
-      height: 270px;
+    .step-node {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
     }
 
-    .metrics-table {
-      width: 100%;
-      border-collapse: collapse;
+    .step-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+      color: #090d16;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 18px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    .metrics-table th {
-      background: #1e293b;
-      color: #38bdf8;
+    .step-label {
+      font-size: 19px;
       font-weight: 700;
-      text-align: left;
-      padding: 14px 16px;
-      border: 1px solid #334155;
+      color: #f8fafc;
     }
 
-    .metrics-table td {
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 14px 16px;
-      border: 1px solid #1e293b;
+    .step-sub {
+      font-size: 15px;
+      color: #94a3b8;
     }
 
-    .metrics-table tr:nth-child(even) td {
-      background: #131d33;
-    }
-
-    .light-mode .metrics-table th {
-      background: #eef2ff;
-      color: #4338ca;
-      border-color: #c7d2fe;
-    }
-
-    .light-mode .metrics-table td {
-      background: #ffffff;
-      color: #0f172a;
-      border-color: #e2e8f0;
-    }
-
-    .light-mode .metrics-table tr:nth-child(even) td {
-      background: #f8fafc;
+    .step-connector {
+      flex: 1;
+      height: 3px;
+      background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
+      border-radius: 2px;
     }
 
     .slide-footer {
@@ -409,13 +376,186 @@
       align-items: center;
       justify-content: space-between;
       border-top: 1px solid rgba(148, 163, 184, 0.22);
-      padding-top: 20px;
+      padding-top: 18px;
     }
 
     .footer-text {
-      font-size: 19px;
+      font-size: 18px;
       font-weight: 600;
       color: #94a3b8;
+    }
+
+    /* ================= SLIDE 2: LIGHT EXECUTIVE DATA & TABLES ================= */
+    #slide-2 {
+      background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 55%, #f1f5f9 100%);
+      color: #0f172a;
+    }
+
+    .s2-title {
+      font-size: 46px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+
+    .s2-subtitle {
+      font-size: 21px;
+      color: #475569;
+    }
+
+    .s2-pill {
+      display: inline-block;
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 10px 24px;
+      border-radius: 999px;
+    }
+
+    .s2-top-row {
+      display: flex;
+      gap: 24px;
+      margin: 20px 0;
+      height: 410px;
+    }
+
+    .light-card {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 24px;
+      padding: 26px 28px;
+      box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .s2-combo-card {
+      flex: 1.2;
+    }
+
+    .s2-bar-card {
+      flex: 1.1;
+    }
+
+    .s2-donut-card {
+      flex: 0.9;
+      align-items: center;
+    }
+
+    .light-card-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .light-kicker {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #6366f1;
+    }
+
+    .light-card-title {
+      font-size: 23px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .chart-box {
+      width: 100%;
+      height: 280px;
+      position: relative;
+    }
+
+    .donut-stage {
+      width: 260px;
+      height: 260px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .donut-center-kpi {
+      position: absolute;
+      z-index: 20;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .donut-kpi-value {
+      font-size: 42px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.05;
+    }
+
+    .donut-kpi-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    .table-panel {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 24px;
+      padding: 22px 28px;
+      box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+      margin-bottom: 14px;
+    }
+
+    .exec-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 18px;
+    }
+
+    .exec-table th {
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+      padding: 13px 18px;
+      border-bottom: 2px solid #cbd5e1;
+      text-align: left;
+    }
+
+    .exec-table th.num,
+    .exec-table td.num {
+      text-align: right;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .exec-table td {
+      background: #ffffff;
+      color: #0f172a;
+      padding: 13px 18px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .exec-table tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .s2-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 14px;
     }
   </style>
 </head>
@@ -423,19 +563,18 @@
   <header class="toolbar">
     <div class="toolbar-left">
       <span class="version-pill">v0.3.0</span>
-      <span class="toolbar-title">ExtendedPptxJS — Native Vectors, Translucent Glass, Combo Charts &amp; Tables</span>
+      <span class="toolbar-title">ExtendedPptxJS — 2-Slide 1920×1080 Verification Deck</span>
     </div>
     <div class="toolbar-actions">
-      <span id="status" class="status-text">Ready (glassMode: native-translucent)</span>
-      <button id="toggle-theme" class="btn btn-secondary" type="button">Toggle Light / Dark</button>
-      <button id="export-btn" class="btn btn-primary" type="button">Export PPTX</button>
+      <span id="status" class="status-text">Ready (2 slides · strict XML DOM patcher)</span>
+      <button id="export-btn" class="btn btn-primary" type="button">Export 2-Slide PPTX</button>
     </div>
   </header>
 
-  <main class="stage-frame" id="stage-frame">
-    <div class="stage-scaler" id="stage-scaler">
-      <section id="slide-canvas">
-        <!-- Aurora Soft-Edge Glow Blobs -->
+  <!-- SLIDE 1 STAGE -->
+  <div class="stage-frame">
+    <div class="stage-scaler">
+      <section class="slide-container" id="slide-1">
         <div class="aurora-blob blob-1"></div>
         <div class="aurora-blob blob-2"></div>
         <div class="aurora-blob blob-3"></div>
@@ -444,156 +583,280 @@
           <div class="slide-header">
             <div>
               <div class="pill-row">
-                <span class="badge-pill">ExtendedPptxJS v0.3.0</span>
-                <span class="status-pill">OOXML EXACT PILL ADJ: 50000</span>
+                <span class="badge-pill">Slide 01 · Dark Aurora</span>
+                <span class="status-pill">PILL ADJ: 50000</span>
               </div>
-              <h1 class="hero-title">Native Translucent Glass, Gradient Charts &amp; Tables</h1>
+              <h1 class="hero-title">Aurora Glow, Translucent Glass &amp; Native Vectors</h1>
               <p class="hero-subtitle">
-                Exact roundRect corner radii, clean Consolas monospace font resolution, native translucent frosted cards over Aurora blobs, and editable combo charts.
+                Exact roundRect corner radii, native translucent frosted cards over soft-edge Aurora blobs, geometric SVG &lt;a:custGeom&gt; icons, and horizontal stepper connectors.
               </p>
             </div>
-            <!-- Native Geometric SVG Icon -> editable roundRect shapes -->
-            <div style="width:96px;height:96px;background:rgba(30,41,59,0.75);border:1.5px solid rgba(129,140,248,0.4);border-radius:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg viewBox="0 0 48 48" style="width:56px;height:56px;">
-                <rect x="6" y="18" width="10" height="22" rx="3" fill="#38bdf8" />
-                <rect x="19" y="10" width="10" height="30" rx="3" fill="#818cf8" />
-                <rect x="32" y="4" width="10" height="36" rx="3" fill="#f472b6" />
-              </svg>
+
+            <div class="icon-row">
+              <!-- Geometric SVG Bar Icon -->
+              <div class="svg-tile">
+                <svg viewBox="0 0 48 48" style="width:52px;height:52px;">
+                  <rect x="6" y="20" width="9" height="20" rx="3" fill="#38bdf8" />
+                  <rect x="19" y="11" width="9" height="29" rx="3" fill="#818cf8" />
+                  <rect x="32" y="5" width="9" height="35" rx="3" fill="#f472b6" />
+                </svg>
+              </div>
+              <!-- Geometric SVG Path Icon -> <a:custGeom> -->
+              <div class="svg-tile">
+                <svg viewBox="0 0 48 48" style="width:52px;height:52px;">
+                  <path d="M24 4 L42 16 L36 40 L12 40 L6 16 Z" fill="#34d399" stroke="#ecfdf5" stroke-width="2.5" />
+                </svg>
+              </div>
             </div>
           </div>
 
-          <div class="cards-grid">
-            <!-- 1. Native Translucent Glass Card (default glassMode: 'native-translucent') -->
+          <div class="cards-grid-s1">
+            <!-- Native Translucent Glass Card -->
             <div class="glass-card">
               <div style="display:flex;flex-direction:column;gap:14px;">
                 <span class="card-kicker">[ Native Translucent Glass ]</span>
-                <h2 class="card-title">Editable Glass Card</h2>
-                <p class="card-metric">100% Vector</p>
+                <h2 class="card-title">Editable Glass Surface</h2>
+                <p class="card-metric">64% Alpha</p>
                 <p class="card-desc">
-                  Emits a native translucent roundRect with a 1pt border so Aurora soft-edge glow blobs shine right through inside PowerPoint.
+                  Emits a native translucent roundRect with subtle 1.5px border and outer shadow so background Aurora soft-edge glow blobs show through natively.
                 </p>
               </div>
-              <div class="token-box">glassMode: "native-translucent"</div>
+              <div class="token-box">glassMode: "native-translucent" · adj: 5170</div>
             </div>
 
-            <!-- 2. Native Gradient Area + Line Combo Chart via data-pptx-chart -->
+            <!-- Multi-Stop Gradient Card -->
             <div class="gradient-card">
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                <span class="card-kicker" style="color:#fde047;">[ Native Gradient Combo Chart ]</span>
-                <h2 class="card-title" style="color:#ffffff;">Throughput Trajectory</h2>
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <span class="card-kicker" style="color:#fde047;">[ Multi-Stop GradFill ]</span>
+                <h2 class="card-title" style="color:#ffffff;">Aurora Violet Gradient</h2>
+                <p class="card-metric" style="color:#fde047;">3 Stops</p>
+                <p class="card-desc" style="color:#f3e8ff;">
+                  Compiled via @xmldom/xmldom into strict-order OOXML &lt;p:spPr&gt; XML with &lt;a:gradFill&gt;, &lt;a:ln&gt;, and &lt;a:outerShdw&gt;.
+                </p>
               </div>
-
-              <div
-                class="chart-stage"
-                data-pptx-chart='{"seriesName":"Throughput (k/s)","labels":["JAN","MAR","MAY","JUL","SEP","DEC"],"values":[28,54,46,82,74,98],"lineColor":"#34D399","lineWidthPt":3.5,"showMarkers":true,"markerSize":7,"valAxisMin":0,"valAxisMax":110}'
-              >
-                <svg viewBox="0 0 500 240" style="width:100%;height:100%;overflow:visible;">
-                  <defs>
-                    <linearGradient id="pgComboGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stop-color="#34d399" stop-opacity="0.45"></stop>
-                      <stop offset="100%" stop-color="#34d399" stop-opacity="0.0"></stop>
-                    </linearGradient>
-                  </defs>
-                  <polygon points="10,225 10,165 106,108 202,126 298,48 394,64 490,14 490,225" fill="url(#pgComboGrad)"></polygon>
-                  <polyline points="10,165 106,108 202,126 298,48 394,64 490,14" fill="none" stroke="#34d399" stroke-width="5" stroke-linecap="round"></polyline>
-                  <circle cx="10" cy="165" r="6" fill="#34d399"></circle>
-                  <circle cx="106" cy="108" r="6" fill="#34d399"></circle>
-                  <circle cx="202" cy="126" r="6" fill="#34d399"></circle>
-                  <circle cx="298" cy="48" r="6" fill="#34d399"></circle>
-                  <circle cx="394" cy="64" r="6" fill="#34d399"></circle>
-                  <circle cx="490" cy="14" r="7" fill="#fde047"></circle>
-                </svg>
-              </div>
-
-              <div class="token-box" style="color:#fde047;">ppt/charts/chart1.xml · area + line</div>
+              <div class="token-box" style="color:#fde047;">#312E81 → #6D28D9 → #DB2777</div>
             </div>
+          </div>
 
-            <!-- 3. Native HTML <table> -> slide.addTable() -->
-            <div class="table-card">
-              <div style="display:flex;flex-direction:column;gap:12px;">
-                <span class="card-kicker" style="color:#f472b6;">[ Native PowerPoint Table ]</span>
-                <h2 class="card-title">Feature Fidelity Matrix</h2>
-                <table class="metrics-table">
-                  <thead>
-                    <tr>
-                      <th>Feature</th>
-                      <th>OOXML Target</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Pill Radius</td>
-                      <td>prstGeom adj</td>
-                      <td>Exact</td>
-                    </tr>
-                    <tr>
-                      <td>Glass Card</td>
-                      <td>roundRect alpha</td>
-                      <td>Native</td>
-                    </tr>
-                    <tr>
-                      <td>Area Chart</td>
-                      <td>chart1.xml grad</td>
-                      <td>Editable</td>
-                    </tr>
-                    <tr>
-                      <td>Monospace</td>
-                      <td>Consolas</td>
-                      <td>Mapped</td>
-                    </tr>
-                  </tbody>
-                </table>
+          <!-- Horizontal Stepper Row with Thin Connector Lines -->
+          <div class="stepper-panel">
+            <div class="step-node">
+              <div class="step-badge">01</div>
+              <div>
+                <div class="step-label">Parse CSS</div>
+                <div class="step-sub">Colors &amp; Radii</div>
               </div>
-              <div class="token-box" style="color:#f472b6;">&lt;table&gt; → slide.addTable()</div>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step-node">
+              <div class="step-badge">02</div>
+              <div>
+                <div class="step-label">Walk Z-Index</div>
+                <div class="step-sub">Paint Order</div>
+              </div>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step-node">
+              <div class="step-badge">03</div>
+              <div>
+                <div class="step-label">Build OOXML</div>
+                <div class="step-sub">Shapes &amp; Charts</div>
+              </div>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step-node">
+              <div class="step-badge">04</div>
+              <div>
+                <div class="step-label">DOM Patch</div>
+                <div class="step-sub">Schema Verified</div>
+              </div>
             </div>
           </div>
 
           <footer class="slide-footer">
-            <span class="footer-text">extended-pptxjs v0.3.0 · Native OOXML Vectors, Charts &amp; Tables</span>
-            <span class="footer-text" style="color:#fde047;">SLIDE 01 / 1920×1080 → 13.333" × 7.5"</span>
+            <span class="footer-text">extended-pptxjs v0.3.0 · Editable Vectors First</span>
+            <span class="footer-text" style="color:#fde047;">SLIDE 01 / 02</span>
           </footer>
         </div>
       </section>
     </div>
-  </main>
+  </div>
+
+  <!-- SLIDE 2 STAGE -->
+  <div class="stage-frame">
+    <div class="stage-scaler">
+      <section class="slide-container" id="slide-2">
+        <div class="slide-content">
+          <div class="slide-header">
+            <div>
+              <h1 class="s2-title">Executive Telemetry, Native Charts &amp; Data Table</h1>
+              <p class="s2-subtitle">
+                Editable PowerPoint combo area-line chart, gradient column chart, centered KPI donut chart, and native table.
+              </p>
+            </div>
+            <span class="s2-pill">SLIDE 02 · LIGHT MODE</span>
+          </div>
+
+          <div class="s2-top-row">
+            <!-- 1. Minimalist Gradient Area + Line Combo Chart -->
+            <div class="light-card s2-combo-card">
+              <div class="light-card-header">
+                <h2 class="light-card-title">Throughput Combo</h2>
+                <span class="light-kicker">AREA + LINE</span>
+              </div>
+              <div
+                class="chart-box"
+                data-pptx-chart='{"type":"gradient-line","seriesName":"Throughput","labels":["JAN","MAR","MAY","JUL","SEP","DEC"],"values":[28,54,46,82,74,98],"lineColor":"#0EA5E9","lineWidthPt":3.5,"showMarkers":true,"markerSize":7,"valAxisMin":0,"valAxisMax":110}'
+              >
+                <svg viewBox="0 0 460 220" style="width:100%;height:100%;overflow:visible;">
+                  <defs>
+                    <linearGradient id="s2AreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.38"></stop>
+                      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0.0"></stop>
+                    </linearGradient>
+                  </defs>
+                  <polygon points="10,210 10,156 98,104 186,120 274,52 362,68 450,20 450,210" fill="url(#s2AreaGrad)"></polygon>
+                  <polyline points="10,156 98,104 186,120 274,52 362,68 450,20" fill="none" stroke="#0ea5e9" stroke-width="4" stroke-linecap="round"></polyline>
+                  <circle cx="10" cy="156" r="5" fill="#0ea5e9"></circle>
+                  <circle cx="98" cy="104" r="5" fill="#0ea5e9"></circle>
+                  <circle cx="186" cy="120" r="5" fill="#0ea5e9"></circle>
+                  <circle cx="274" cy="52" r="5" fill="#0ea5e9"></circle>
+                  <circle cx="362" cy="68" r="5" fill="#0ea5e9"></circle>
+                  <circle cx="450" cy="20" r="6" fill="#0284c7"></circle>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 2. Vertical Column Chart with Gradient Series Fill & Data Labels -->
+            <div class="light-card s2-bar-card">
+              <div class="light-card-header">
+                <h2 class="light-card-title">Quarterly Adoption</h2>
+                <span class="light-kicker">GRADIENT COL</span>
+              </div>
+              <div
+                class="chart-box"
+                data-pptx-chart='{"type":"col","seriesName":"Adoption %","labels":["Q1","Q2","Q3","Q4"],"values":[42,68,84,96],"barColor":"#6366F1","showDataLabels":true,"dataLabelColor":"#0F172A","valAxisMin":0,"valAxisMax":110,"gradient":{"angleDeg":180,"stops":[{"color":"6366F1","position":0,"opacity":1},{"color":"A855F7","position":100,"opacity":0.55}]}}'
+              >
+                <svg viewBox="0 0 400 220" style="width:100%;height:100%;">
+                  <defs>
+                    <linearGradient id="s2BarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#6366f1"></stop>
+                      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.55"></stop>
+                    </linearGradient>
+                  </defs>
+                  <rect x="28" y="130" width="56" height="80" rx="8" fill="url(#s2BarGrad)"></rect>
+                  <rect x="122" y="82" width="56" height="128" rx="8" fill="url(#s2BarGrad)"></rect>
+                  <rect x="216" y="50" width="56" height="160" rx="8" fill="url(#s2BarGrad)"></rect>
+                  <rect x="310" y="26" width="56" height="184" rx="8" fill="url(#s2BarGrad)"></rect>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 3. Donut Chart with Centered KPI Label Above Chart (z-index) -->
+            <div class="light-card s2-donut-card">
+              <div class="light-card-header">
+                <h2 class="light-card-title">Cluster Capacity</h2>
+                <span class="light-kicker">DONUT + KPI</span>
+              </div>
+              <div
+                class="donut-stage"
+                data-pptx-chart='{"type":"donut","seriesName":"Capacity","labels":["Used","Available"],"values":[78.4,21.6],"colors":["EC4899","E2E8F0"],"holeSize":70,"showLegend":false,"showDataLabels":false}'
+              >
+                <svg viewBox="0 0 120 120" style="width:100%;height:100%;transform:rotate(-90deg);">
+                  <circle cx="60" cy="60" r="46" stroke="#e2e8f0" stroke-width="14" fill="none"></circle>
+                  <circle cx="60" cy="60" r="46" stroke="#ec4899" stroke-width="14" fill="none" stroke-dasharray="289" stroke-dashoffset="62" stroke-linecap="round"></circle>
+                </svg>
+                <div class="donut-center-kpi">
+                  <span class="donut-kpi-value">78.4%</span>
+                  <span class="donut-kpi-label">Active</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Styled HTML Table -> slide.addTable() -->
+          <div class="table-panel">
+            <table class="exec-table">
+              <thead>
+                <tr>
+                  <th>Subsystem</th>
+                  <th>OOXML Representation</th>
+                  <th class="num">Latency</th>
+                  <th class="num">Fidelity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Corner Radii</td>
+                  <td>&lt;a:prstGeom prst="roundRect"&gt; exact adj</td>
+                  <td class="num">0.4 ms</td>
+                  <td class="num">100.0%</td>
+                </tr>
+                <tr>
+                  <td>Combo Charts</td>
+                  <td>&lt;c:areaChart&gt; + &lt;c:lineChart&gt; gradFill</td>
+                  <td class="num">2.1 ms</td>
+                  <td class="num">100.0%</td>
+                </tr>
+                <tr>
+                  <td>Glass Surfaces</td>
+                  <td>Native translucent roundRect + 1.5px border</td>
+                  <td class="num">0.2 ms</td>
+                  <td class="num">99.8%</td>
+                </tr>
+                <tr>
+                  <td>Typography</td>
+                  <td>Clean font stack &amp; Consolas mapping</td>
+                  <td class="num">0.1 ms</td>
+                  <td class="num">100.0%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <footer class="s2-footer">
+            <span class="footer-text" style="color:#64748b;">extended-pptxjs v0.3.0 · Native Editable Charts &amp; Tables</span>
+            <span class="footer-text" style="color:#4f46e5;">SLIDE 02 / 02</span>
+          </footer>
+        </div>
+      </section>
+    </div>
+  </div>
 
   <script src="../dist/extended-pptxjs.bundle.js"></script>
   <script>
-    const stageFrame = document.getElementById('stage-frame');
-    const stageScaler = document.getElementById('stage-scaler');
-    const slideCanvas = document.getElementById('slide-canvas');
+    const stageFrames = Array.from(document.querySelectorAll('.stage-frame'));
+    const slideEls = Array.from(document.querySelectorAll('.slide-container'));
     const exportBtn = document.getElementById('export-btn');
-    const toggleThemeBtn = document.getElementById('toggle-theme');
     const statusEl = document.getElementById('status');
 
-    function fitSlidePreview() {
-      const frameWidth = stageFrame.clientWidth;
-      const scale = frameWidth / 1920;
-      stageScaler.style.transform = `scale(${scale})`;
+    function fitSlidePreviews() {
+      for (const frame of stageFrames) {
+        const scaler = frame.querySelector('.stage-scaler');
+        if (scaler) {
+          const scale = frame.clientWidth / 1920;
+          scaler.style.transform = `scale(${scale})`;
+        }
+      }
     }
 
-    window.addEventListener('resize', fitSlidePreview);
-    fitSlidePreview();
-
-    toggleThemeBtn.addEventListener('click', () => {
-      slideCanvas.classList.toggle('light-mode');
-    });
+    window.addEventListener('resize', fitSlidePreviews);
+    fitSlidePreviews();
 
     exportBtn.addEventListener('click', async () => {
       try {
         exportBtn.disabled = true;
-        statusEl.textContent = 'Converting 1920x1080 slide to editable PPTX...';
+        statusEl.textContent = 'Converting 2 slides (1920x1080) to editable PPTX...';
 
         const pptx = new globalThis.ExtendedPptxJS();
         const converter = new globalThis.HtmlSlideConverter(pptx, {
           glassMode: 'native-translucent',
           dpiScale: 3,
         });
-        await converter.convertSlide(slideCanvas);
+        await converter.convertDeck(slideEls);
         await pptx.downloadBrowserFile('extended-pptxjs-playground.pptx');
 
-        statusEl.textContent = 'Exported extended-pptxjs-playground.pptx!';
+        statusEl.textContent = 'Exported 2-slide extended-pptxjs-playground.pptx!';
       } catch (err) {
         console.error(err);
         statusEl.textContent = 'Export failed: ' + (err && err.message ? err.message : String(err));

@@ -15,7 +15,7 @@ export default defineConfig([
     entry: { 'extended-pptxjs.bundle': 'src/browser.ts' },
     format: ['iife'],
     globalName: 'ExtendedPptxJSLib',
-    noExternal: ['pptxgenjs', 'jszip'],
+    noExternal: ['pptxgenjs', 'jszip', '@xmldom/xmldom'],
     minify: true,
     platform: 'browser',
     outExtension: () => ({ js: '.js' }),

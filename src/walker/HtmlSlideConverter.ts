@@ -1,8 +1,10 @@
 import type PptxGenJS from 'pptxgenjs';
 import {
   ExtendedPptxJS,
+  type DonutChartOptions,
   type EmbeddedFont,
   type ExtendedGradient,
+  type GradientBarChartOptions,
   type GradientLineChartOptions,
   type GradientStop,
 } from '../core/ExtendedPptxJS';
@@ -312,29 +314,54 @@ export class HtmlSlideConverter {
     return canvas;
   }
 
-  private parseDeclarativeChartAttr(
+  private emitDeclarativeChartAttr(
     el: Element,
+    slide: PptxGenJS.Slide,
     rect: RectPx
-  ): GradientLineChartOptions | undefined {
+  ): boolean {
     const raw = el.getAttribute('data-pptx-chart');
-    if (!raw) return undefined;
+    if (!raw) return false;
 
     try {
-      const parsed = JSON.parse(raw) as Partial<GradientLineChartOptions> & {
+      const parsed = JSON.parse(raw) as Partial<
+        GradientLineChartOptions & GradientBarChartOptions & DonutChartOptions
+      > & {
+        type?: 'gradient-line' | 'line' | 'bar' | 'col' | 'donut' | 'doughnut';
         color?: string;
         gradientStops?: GradientStop[];
       };
+
       if (!Array.isArray(parsed.labels) || !Array.isArray(parsed.values)) {
-        return undefined;
+        return false;
       }
 
-      const rawLineColor = parsed.lineColor ?? parsed.color ?? '#38BDF8';
-      const parsedLineColor = parseCssColor(rawLineColor);
-      const lineColor = parsedLineColor?.hex ?? rawLineColor.replace('#', '');
+      const chartType = parsed.type ?? 'gradient-line';
+      const labels = parsed.labels.map(String);
+      const values = parsed.values.map(Number);
 
-      let areaGradient = parsed.areaGradient;
-      if (!areaGradient && Array.isArray(parsed.gradientStops)) {
-        areaGradient = {
+      if (chartType === 'donut' || chartType === 'doughnut') {
+        this.ext.addDonutChart(slide, {
+          xPx: rect.xPx,
+          yPx: rect.yPx,
+          wPx: rect.wPx,
+          hPx: rect.hPx,
+          seriesName: parsed.seriesName,
+          labels,
+          values,
+          colors: parsed.colors,
+          holeSize: parsed.holeSize,
+          showLegend: parsed.showLegend,
+          showDataLabels: parsed.showDataLabels,
+        });
+        return true;
+      }
+
+      const rawColor = parsed.barColor ?? parsed.lineColor ?? parsed.color ?? '#38BDF8';
+      const resolvedHex = parseCssColor(rawColor)?.hex ?? rawColor.replace('#', '');
+
+      let customGradient = parsed.gradient ?? parsed.areaGradient;
+      if (!customGradient && Array.isArray(parsed.gradientStops)) {
+        customGradient = {
           angleDeg: 180,
           stops: parsed.gradientStops.map((s) => ({
             ...s,
@@ -343,29 +370,55 @@ export class HtmlSlideConverter {
         };
       }
 
-      return {
+      if (chartType === 'bar' || chartType === 'col') {
+        this.ext.addGradientBarChart(slide, {
+          xPx: rect.xPx,
+          yPx: rect.yPx,
+          wPx: rect.wPx,
+          hPx: rect.hPx,
+          seriesName: parsed.seriesName,
+          labels,
+          values,
+          barDir: chartType === 'bar' ? 'bar' : 'col',
+          barColor: resolvedHex,
+          gradient: customGradient,
+          showDataLabels: parsed.showDataLabels,
+          dataLabelColor: parsed.dataLabelColor,
+          dataLabelPosition: parsed.dataLabelPosition,
+          showGridLines: parsed.showGridLines,
+          showAxes: parsed.showAxes,
+          showLegend: parsed.showLegend,
+          barGapWidthPct: parsed.barGapWidthPct,
+          valAxisMin: parsed.valAxisMin,
+          valAxisMax: parsed.valAxisMax,
+        });
+        return true;
+      }
+
+      this.ext.addGradientLineChart(slide, {
         xPx: rect.xPx,
         yPx: rect.yPx,
         wPx: rect.wPx,
         hPx: rect.hPx,
         seriesName: parsed.seriesName,
-        labels: parsed.labels.map(String),
-        values: parsed.values.map(Number),
-        lineColor,
+        labels,
+        values,
+        lineColor: resolvedHex,
         lineWidthPt: parsed.lineWidthPt,
         showMarkers: parsed.showMarkers,
         markerSize: parsed.markerSize,
         markerColor: parsed.markerColor
           ? (parseCssColor(parsed.markerColor)?.hex ?? parsed.markerColor.replace('#', ''))
           : undefined,
-        areaGradient,
+        areaGradient: customGradient,
         smooth: parsed.smooth,
         showLegend: parsed.showLegend,
         valAxisMin: parsed.valAxisMin,
         valAxisMax: parsed.valAxisMax,
-      };
+      });
+      return true;
     } catch {
-      return undefined;
+      return false;
     }
   }
 
@@ -503,11 +556,9 @@ export class HtmlSlideConverter {
     const rect = this.toSlideRect(domRect, containerRect);
     if (rect.wPx <= 0.5 || rect.hPx <= 0.5) return false;
 
-    // 0. Declarative data-pptx-chart JSON combo chart
-    const declarativeChart = this.parseDeclarativeChartAttr(el, rect);
-    if (declarativeChart) {
-      this.ext.addGradientLineChart(slide, declarativeChart);
-      return false;
+    // 0. Declarative data-pptx-chart JSON chart (line/area combo, bar/col, or donut)
+    if (this.emitDeclarativeChartAttr(el, slide, rect)) {
+      return el instanceof HTMLElement; // Descend only into HTML overlay children (SVG previews skipped below)
     }
 
     // Explicit raster opt-in via data-pptx-raster
@@ -767,10 +818,16 @@ export class HtmlSlideConverter {
     const shouldDescend = await this.processVisualElement(el, slide, containerRect, backdropCanvas);
     if (!shouldDescend || !(el instanceof HTMLElement)) return;
 
-    this.emitDirectTextNodes(el, slide, containerRect);
+    const isDeclarativeChartContainer = el.hasAttribute('data-pptx-chart');
+    if (!isDeclarativeChartContainer) {
+      this.emitDirectTextNodes(el, slide, containerRect);
+    }
 
     const sortedChildren = sortChildrenInPaintOrder(el);
     for (const child of sortedChildren) {
+      if (isDeclarativeChartContainer && child instanceof SVGSVGElement) {
+        continue;
+      }
       await this.walkElementTree(child, slide, containerRect, backdropCanvas);
     }
   }

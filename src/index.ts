@@ -8,6 +8,8 @@ export {
   type ExtendedPptxJSOptions,
   type ExtendedShapeOptions,
   type GradientLineChartOptions,
+  type GradientBarChartOptions,
+  type DonutChartOptions,
 } from './core/ExtendedPptxJS';
 
 export {
