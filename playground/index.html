@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ExtendedPptxJS v0.3.0 — 2-Slide Verification Deck</title>
+  <title>ExtendedPptxJS v0.4.0 — 2-Slide Verification Deck</title>
   <style>
     * {
       box-sizing: border-box;
@@ -253,6 +253,7 @@
     }
 
     .glass-card {
+      position: relative;
       flex: 1;
       background: rgba(15, 23, 42, 0.64);
       backdrop-filter: blur(28px) saturate(180%);
@@ -265,6 +266,25 @@
       flex-direction: column;
       justify-content: space-between;
       gap: 18px;
+      overflow: hidden;
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 28px;
+      right: 28px;
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #38bdf8 0%, #818cf8 100%);
+    }
+
+    .gradient-clip-text {
+      background: linear-gradient(90deg, #38bdf8 0%, #f472b6 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     .gradient-card {
@@ -562,11 +582,11 @@
 <body>
   <header class="toolbar">
     <div class="toolbar-left">
-      <span class="version-pill">v0.3.0</span>
+      <span class="version-pill">v0.4.0</span>
       <span class="toolbar-title">ExtendedPptxJS — 2-Slide 1920×1080 Verification Deck</span>
     </div>
     <div class="toolbar-actions">
-      <span id="status" class="status-text">Ready (2 slides · strict XML DOM patcher)</span>
+      <span id="status" class="status-text">Ready (2 slides · v0.4.0 real-world deck walker)</span>
       <button id="export-btn" class="btn btn-primary" type="button">Export 2-Slide PPTX</button>
     </div>
   </header>
@@ -586,9 +606,9 @@
                 <span class="badge-pill">Slide 01 · Dark Aurora</span>
                 <span class="status-pill">PILL ADJ: 50000</span>
               </div>
-              <h1 class="hero-title">Aurora Glow, Translucent Glass &amp; Native Vectors</h1>
+              <h1 class="hero-title"><span class="gradient-clip-text">Aurora Glow</span>, Translucent Glass &amp; Native Vectors</h1>
               <p class="hero-subtitle">
-                Exact roundRect corner radii, native translucent frosted cards over soft-edge Aurora blobs, geometric SVG &lt;a:custGeom&gt; icons, and horizontal stepper connectors.
+                Exact roundRect corner radii, <strong>native translucent frosted cards</strong> over soft-edge Aurora blobs, geometric SVG &lt;a:custGeom&gt; icons, and single-sided borders.
               </p>
             </div>
 
@@ -618,7 +638,7 @@
                 <h2 class="card-title">Editable Glass Surface</h2>
                 <p class="card-metric">64% Alpha</p>
                 <p class="card-desc">
-                  Emits a native translucent roundRect with subtle 1.5px border and outer shadow so background Aurora soft-edge glow blobs show through natively.
+                  Emits a native translucent <strong>roundRect</strong> with subtle <span style="color:#38bdf8;font-weight:700;">1.5px border</span> and <code>::before</code> top bevel so background Aurora blobs show through natively.
                 </p>
               </div>
               <div class="token-box">glassMode: "native-translucent" · adj: 5170</div>
@@ -631,7 +651,7 @@
                 <h2 class="card-title" style="color:#ffffff;">Aurora Violet Gradient</h2>
                 <p class="card-metric" style="color:#fde047;">3 Stops</p>
                 <p class="card-desc" style="color:#f3e8ff;">
-                  Compiled via @xmldom/xmldom into strict-order OOXML &lt;p:spPr&gt; XML with &lt;a:gradFill&gt;, &lt;a:ln&gt;, and &lt;a:outerShdw&gt;.
+                  Compiled via <strong>@xmldom/xmldom</strong> into strict-order OOXML &lt;p:spPr&gt; XML with &lt;a:gradFill&gt;, &lt;a:ln&gt;, and &lt;a:outerShdw&gt;.
                 </p>
               </div>
               <div class="token-box" style="color:#fde047;">#312E81 → #6D28D9 → #DB2777</div>

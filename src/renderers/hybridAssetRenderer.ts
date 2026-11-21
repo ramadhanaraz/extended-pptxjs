@@ -641,11 +641,22 @@ export function convertSimpleSvgToShapes(
   const shapes: ExtendedShapeOptions[] = [];
   const children = svgEl.querySelectorAll('rect, circle, ellipse, line, polygon, polyline, path');
 
+  const svgComputedColor =
+    typeof window !== 'undefined' ? window.getComputedStyle(svgEl).color : undefined;
+
   for (const node of Array.from(children)) {
     const tag = node.tagName.toLowerCase();
-    const fillAttr = node.getAttribute('fill') ?? svgEl.getAttribute('fill') ?? '#000000';
-    const strokeAttr = node.getAttribute('stroke') ?? svgEl.getAttribute('stroke') ?? 'none';
-    const strokeWidthAttr = parseFloat(node.getAttribute('stroke-width') ?? '1');
+    let fillAttr = node.getAttribute('fill') ?? svgEl.getAttribute('fill') ?? '#000000';
+    let strokeAttr = node.getAttribute('stroke') ?? svgEl.getAttribute('stroke') ?? 'none';
+    if (fillAttr.toLowerCase() === 'currentcolor' && svgComputedColor) {
+      fillAttr = svgComputedColor;
+    }
+    if (strokeAttr.toLowerCase() === 'currentcolor' && svgComputedColor) {
+      strokeAttr = svgComputedColor;
+    }
+    const strokeWidthAttr = parseFloat(
+      node.getAttribute('stroke-width') ?? svgEl.getAttribute('stroke-width') ?? '1'
+    );
     const opacityAttr = parseFloat(node.getAttribute('opacity') ?? '1');
     const fillOpacityAttr = parseFloat(node.getAttribute('fill-opacity') ?? '1');
     const strokeOpacityAttr = parseFloat(node.getAttribute('stroke-opacity') ?? '1');
@@ -767,6 +778,12 @@ export async function rasterizeSvgToPng(
   clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   clone.setAttribute('width', String(rect.wPx));
   clone.setAttribute('height', String(rect.hPx));
+  if (typeof window !== 'undefined') {
+    const computedColor = window.getComputedStyle(svgEl).color;
+    if (computedColor) {
+      clone.style.color = computedColor;
+    }
+  }
 
   const xml = new XMLSerializer().serializeToString(clone);
   const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(xml)}`;

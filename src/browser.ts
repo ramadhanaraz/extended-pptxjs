@@ -3,22 +3,27 @@ import * as cssParser from './parsers/cssParser';
 import * as hybridAssetRenderer from './renderers/hybridAssetRenderer';
 import { HtmlSlideConverter, extractAreaLineChartFromSvg } from './walker/HtmlSlideConverter';
 
-const globalObj = globalThis as Record<string, unknown>;
+function attachGlobals(target: Record<string, unknown>): void {
+  target.ExtendedPptxJS = ExtendedPptxJS;
+  target.HtmlSlideConverter = HtmlSlideConverter;
+  target.extractAreaLineChartFromSvg = extractAreaLineChartFromSvg;
+  target.cssParser = cssParser;
+  target.hybridAssetRenderer = hybridAssetRenderer;
 
-globalObj.ExtendedPptxJS = ExtendedPptxJS;
-globalObj.HtmlSlideConverter = HtmlSlideConverter;
-globalObj.extractAreaLineChartFromSvg = extractAreaLineChartFromSvg;
-globalObj.cssParser = cssParser;
-globalObj.hybridAssetRenderer = hybridAssetRenderer;
+  target.parseCssColor = cssParser.parseCssColor;
+  target.parseLinearGradient = cssParser.parseLinearGradient;
+  target.parseBorderRadius = cssParser.parseBorderRadius;
+  target.parseBoxShadow = cssParser.parseBoxShadow;
+  target.parseBorder = cssParser.parseBorder;
+  target.parseFilterBlur = cssParser.parseFilterBlur;
+  target.parseCssToShapeOptions = cssParser.parseCssToShapeOptions;
+  target.resolveFontFamily = cssParser.resolveFontFamily;
+}
 
-globalObj.parseCssColor = cssParser.parseCssColor;
-globalObj.parseLinearGradient = cssParser.parseLinearGradient;
-globalObj.parseBorderRadius = cssParser.parseBorderRadius;
-globalObj.parseBoxShadow = cssParser.parseBoxShadow;
-globalObj.parseBorder = cssParser.parseBorder;
-globalObj.parseFilterBlur = cssParser.parseFilterBlur;
-globalObj.parseCssToShapeOptions = cssParser.parseCssToShapeOptions;
-globalObj.resolveFontFamily = cssParser.resolveFontFamily;
+attachGlobals(globalThis as Record<string, unknown>);
+if (typeof window !== 'undefined' && (window as unknown) !== globalThis) {
+  attachGlobals(window as unknown as Record<string, unknown>);
+}
 
 export {
   ExtendedPptxJS,
