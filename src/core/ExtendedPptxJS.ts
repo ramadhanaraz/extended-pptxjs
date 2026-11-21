@@ -34,6 +34,7 @@ export interface ExtendedShapeOptions {
   gradient?: ExtendedGradient;
   softEdgePt?: number; // Blurred edge radius in points (for Aurora glow blobs)
   shadow?: ExtendedShadow;
+  customGeometryXml?: string; // Raw OOXML <a:custGeom>...</a:custGeom> XML
   border?: {
     color: string;
     widthPt: number;
@@ -47,6 +48,7 @@ interface PendingXmlPatch {
   gradient?: ExtendedGradient;
   softEdgePt?: number;
   shadow?: ExtendedShadow;
+  customGeometryXml?: string;
 }
 
 export class ExtendedPptxJS {
@@ -132,13 +134,14 @@ export class ExtendedPptxJS {
 
     slide.addShape(shapeType, shapeProps);
 
-    if (opts.gradient || opts.softEdgePt || opts.shadow) {
+    if (opts.gradient || opts.softEdgePt || opts.shadow || opts.customGeometryXml) {
       this.patches.push({
         slideIndex,
         objectName,
         gradient: opts.gradient,
         softEdgePt: opts.softEdgePt,
         shadow: opts.shadow,
+        customGeometryXml: opts.customGeometryXml,
       });
     }
 
@@ -210,30 +213,45 @@ export class ExtendedPptxJS {
       if (!file) continue;
       let xml = await file.async('string');
 
-      for (const patch of slidePatches) {
-        const spRegex = new RegExp(
-          `(<p:sp>[\\s\\S]*?<p:cNvPr[^>]*name="${patch.objectName}"[\\s\\S]*?<\\/p:sp>)`
-        );
+      const patchMap = new Map(slidePatches.map((p) => [p.objectName, p]));
 
-        xml = xml.replace(spRegex, (spBlock) => {
-          return spBlock.replace(/<p:spPr>[\s\S]*?<\/p:spPr>/, (spPrBlock) => {
-            let updatedSpPr = spPrBlock;
+      xml = xml.replace(/<p:sp>[\s\S]*?<\/p:sp>/g, (spBlock) => {
+        const nameMatch = /<p:cNvPr[^>]*name="([^"]+)"/.exec(spBlock);
+        if (!nameMatch) return spBlock;
+        const patch = patchMap.get(nameMatch[1]);
+        if (!patch) return spBlock;
 
-            if (patch.gradient) {
-              const gradXml = this.buildGradFillXml(patch.gradient);
-              // Replace only the first <a:solidFill> (shape fill), preserving <a:ln> border fills
-              updatedSpPr = updatedSpPr.replace(/<a:solidFill>[\s\S]*?<\/a:solidFill>/, gradXml);
-            }
+        return spBlock.replace(/<p:spPr>[\s\S]*?<\/p:spPr>/, (spPrBlock) => {
+          let updatedSpPr = spPrBlock;
 
-            const effectLstXml = this.buildEffectLstXml(patch.softEdgePt, patch.shadow);
-            if (effectLstXml) {
+          if (patch.customGeometryXml) {
+            updatedSpPr = updatedSpPr.replace(
+              /<a:prstGeom[^>]*>[\s\S]*?<\/a:prstGeom>|<a:prstGeom[^>]*\/>/,
+              patch.customGeometryXml
+            );
+          }
+
+          if (patch.gradient) {
+            const gradXml = this.buildGradFillXml(patch.gradient);
+            // Replace only the first <a:solidFill> (shape fill), preserving <a:ln> border fills
+            updatedSpPr = updatedSpPr.replace(/<a:solidFill>[\s\S]*?<\/a:solidFill>/, gradXml);
+          }
+
+          const effectLstXml = this.buildEffectLstXml(patch.softEdgePt, patch.shadow);
+          if (effectLstXml) {
+            if (/<a:effectLst[\s/>]/.test(updatedSpPr)) {
+              updatedSpPr = updatedSpPr.replace(
+                /<a:effectLst>[\s\S]*?<\/a:effectLst>|<a:effectLst\/>/,
+                effectLstXml
+              );
+            } else {
               updatedSpPr = updatedSpPr.replace('</p:spPr>', `${effectLstXml}</p:spPr>`);
             }
+          }
 
-            return updatedSpPr;
-          });
+          return updatedSpPr;
         });
-      }
+      });
 
       zip.file(slidePath, xml);
     }
