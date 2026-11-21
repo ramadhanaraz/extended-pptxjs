@@ -7,6 +7,7 @@ import {
   parseCssToShapeOptions,
   parseFilterBlur,
   parseLinearGradient,
+  resolveFontFamily,
 } from '../src/parsers/cssParser';
 
 describe('parseCssColor', () => {
@@ -217,5 +218,32 @@ describe('parseCssToShapeOptions', () => {
       fillOpacity: 0.35,
       softEdgePt: 30,
     });
+  });
+});
+
+describe('resolveFontFamily', () => {
+  it('extracts clean primary font family and strips quotes while ignoring generic fallbacks', () => {
+    expect(
+      resolveFontFamily('"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif')
+    ).toBe('Plus Jakarta Sans');
+    expect(resolveFontFamily("'Space Grotesk', serif")).toBe('Space Grotesk');
+    expect(resolveFontFamily('-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif')).toBe(
+      'Segoe UI'
+    );
+  });
+
+  it('maps monospace stacks to Consolas by default and supports custom fontMap overrides', () => {
+    expect(
+      resolveFontFamily('ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace')
+    ).toBe('Consolas');
+    expect(resolveFontFamily('monospace')).toBe('Consolas');
+    expect(resolveFontFamily('sans-serif')).toBe('Arial');
+    expect(resolveFontFamily('serif')).toBe('Georgia');
+
+    expect(
+      resolveFontFamily('"Plus Jakarta Sans", sans-serif', {
+        'Plus Jakarta Sans': 'Calibri',
+      })
+    ).toBe('Calibri');
   });
 });

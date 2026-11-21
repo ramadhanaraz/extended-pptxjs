@@ -772,3 +772,88 @@ export function parseCssToShapeOptions(
 
   return options;
 }
+
+const GENERIC_FONT_FAMILIES = new Set([
+  'sans-serif',
+  'serif',
+  'monospace',
+  'ui-monospace',
+  'ui-sans-serif',
+  'ui-serif',
+  'ui-rounded',
+  'system-ui',
+  '-apple-system',
+  'blinkmacsystemfont',
+  'cursive',
+  'fantasy',
+  'emoji',
+  'math',
+  'fangsong',
+]);
+
+export const DEFAULT_FONT_MAP: Record<string, string> = {
+  'ui-monospace': 'Consolas',
+  monospace: 'Consolas',
+  'sfmono-regular': 'Consolas',
+  'sf mono': 'Consolas',
+  menlo: 'Consolas',
+  monaco: 'Consolas',
+  'liberation mono': 'Consolas',
+  'courier new': 'Consolas',
+};
+
+/**
+ * Extracts the primary font family from a CSS `font-family` stack, stripping
+ * surrounding quotes, ignoring generic CSS fallbacks (`sans-serif`, `serif`,
+ * `ui-monospace`, `monospace`, etc.), and applying `fontMap` (with sensible
+ * defaults mapping monospace stacks to `Consolas`).
+ */
+export function resolveFontFamily(
+  fontFamilyCss: string | undefined | null,
+  fontMap?: Record<string, string>
+): string {
+  if (!fontFamilyCss || !fontFamilyCss.trim()) {
+    return 'Arial';
+  }
+
+  const normalizedCustomMap = new Map<string, string>();
+  if (fontMap) {
+    for (const [key, val] of Object.entries(fontMap)) {
+      normalizedCustomMap.set(key.trim().replace(/^["']|["']$/g, '').toLowerCase(), val);
+    }
+  }
+
+  const tokens = splitTopLevel(fontFamilyCss, ',')
+    .map((t) => t.trim().replace(/^["']|["']$/g, '').trim())
+    .filter(Boolean);
+
+  if (tokens.length === 0) return 'Arial';
+
+  // 1. User-provided fontMap takes highest priority across tokens
+  for (const token of tokens) {
+    const mapped = normalizedCustomMap.get(token.toLowerCase());
+    if (mapped) return mapped;
+  }
+
+  // 2. First non-generic font family (mapping known system monospace aliases to Consolas)
+  for (const token of tokens) {
+    const lower = token.toLowerCase();
+    if (GENERIC_FONT_FAMILIES.has(lower)) continue;
+    if (DEFAULT_FONT_MAP[lower]) return DEFAULT_FONT_MAP[lower];
+    return token;
+  }
+
+  // 3. Stack contained only generic/system keywords -> check DEFAULT_FONT_MAP (e.g. ui-monospace -> Consolas)
+  for (const token of tokens) {
+    const lower = token.toLowerCase();
+    if (DEFAULT_FONT_MAP[lower]) return DEFAULT_FONT_MAP[lower];
+  }
+
+  // 4. Generic serif fallback
+  if (tokens.some((t) => t.toLowerCase() === 'serif' || t.toLowerCase() === 'ui-serif')) {
+    return 'Georgia';
+  }
+
+  return 'Arial';
+}
+

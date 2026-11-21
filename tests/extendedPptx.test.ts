@@ -61,8 +61,86 @@ describe('ExtendedPptxJS OpenXML post-processing', () => {
     expect(shapes).toHaveLength(3);
     expect(shapes[0]).toContain('<a:gradFill');
     expect(shapes[0]).toContain('<a:outerShdw');
+    // 28px radius on 500x300 card -> round((28/300) * 100000) = 9333
+    expect(shapes[0]).toContain('<a:gd name="adj" fmla="val 9333"/>');
     expect(shapes[1]).toContain('<a:softEdge rad="571500"/>');
     expect(shapes[2]).toContain('<a:custGeom>');
+  });
+
+  it('patches exact roundRect adj for wide pill badges, embeds TTF fonts, and builds gradient combo charts', async () => {
+    const fakeTtfBytes = new Uint8Array([0x00, 0x01, 0x00, 0x00, 0x44, 0x49, 0x47, 0x49]);
+    const ext = new ExtendedPptxJS({
+      embedFonts: [{ name: 'Plus Jakarta Sans', data: fakeTtfBytes }],
+    });
+    const slide = ext.addSlide();
+
+    // Wide pill badge: 320x48 with border-radius: 999px -> clamped to 50000
+    ext.addExtendedShape(slide, {
+      xPx: 80,
+      yPx: 60,
+      wPx: 320,
+      hPx: 48,
+      cornerRadiusPx: 999,
+      fillColor: '6366F1',
+    });
+
+    // Rounded card: 400x200 with border-radius: 20px -> (20/200)*100000 = 10000
+    ext.addExtendedShape(slide, {
+      xPx: 80,
+      yPx: 140,
+      wPx: 400,
+      hPx: 200,
+      cornerRadiusPx: 20,
+      fillColor: '0F172A',
+    });
+
+    // Native Gradient Area + Line Combo Chart
+    ext.addGradientLineChart(slide, {
+      xPx: 540,
+      yPx: 140,
+      wPx: 600,
+      hPx: 320,
+      seriesName: 'Throughput',
+      labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+      values: [24, 58, 46, 92],
+      lineColor: '#34D399',
+      lineWidthPt: 3.5,
+      showMarkers: true,
+      markerSize: 8,
+    });
+
+    const buffer = await ext.exportBuffer();
+    const zip = await JSZip.loadAsync(buffer);
+
+    const slideXml = await zip.file('ppt/slides/slide1.xml')?.async('string');
+    const shapes = slideXml!.match(/<p:sp>[\s\S]*?<\/p:sp>/g) ?? [];
+    expect(shapes).toHaveLength(2);
+    expect(shapes[0]).toContain('<a:gd name="adj" fmla="val 50000"/>');
+    expect(shapes[1]).toContain('<a:gd name="adj" fmla="val 10000"/>');
+
+    // Verify chart1.xml contains areaChart + lineChart, hidden axes, and vertical gradFill
+    const chartXml = await zip.file('ppt/charts/chart1.xml')?.async('string');
+    expect(chartXml).toBeDefined();
+    expect(chartXml).toContain('<c:areaChart>');
+    expect(chartXml).toContain('<c:lineChart>');
+    expect(chartXml).toContain('<c:delete val="1"/>');
+    expect(chartXml).toContain('<a:gradFill rotWithShape="1">');
+    expect(chartXml).toContain('<a:lin ang="5400000" scaled="1"/>');
+    expect(chartXml).toContain('<a:srgbClr val="34D399">');
+
+    // Verify embedded font files and XML metadata
+    const fontData = await zip.file('ppt/fonts/font1.fntdata')?.async('uint8array');
+    expect(fontData).toEqual(fakeTtfBytes);
+
+    const presXml = await zip.file('ppt/presentation.xml')?.async('string');
+    expect(presXml).toContain('<p:embeddedFontLst>');
+    expect(presXml).toContain('<p:font typeface="Plus Jakarta Sans"/>');
+
+    const relsXml = await zip.file('ppt/_rels/presentation.xml.rels')?.async('string');
+    expect(relsXml).toContain('Target="fonts/font1.fntdata"');
+
+    const contentTypesXml = await zip.file('[Content_Types].xml')?.async('string');
+    expect(contentTypesXml).toContain('Extension="fntdata"');
   });
 });
 

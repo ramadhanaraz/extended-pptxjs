@@ -4,10 +4,14 @@ export {
   type GradientStop,
   type ExtendedGradient,
   type ExtendedShadow,
+  type EmbeddedFont,
+  type ExtendedPptxJSOptions,
   type ExtendedShapeOptions,
+  type GradientLineChartOptions,
 } from './core/ExtendedPptxJS';
 
 export {
+  DEFAULT_FONT_MAP,
   parseCssColor,
   parseLinearGradient,
   parseBorderRadius,
@@ -15,6 +19,7 @@ export {
   parseBorder,
   parseFilterBlur,
   parseCssToShapeOptions,
+  resolveFontFamily,
   splitTopLevel,
   type ParsedColor,
   type RectPx,
@@ -38,5 +43,7 @@ export {
 
 export {
   HtmlSlideConverter,
+  extractAreaLineChartFromSvg,
+  type GlassMode,
   type HtmlSlideConverterOptions,
 } from './walker/HtmlSlideConverter';
